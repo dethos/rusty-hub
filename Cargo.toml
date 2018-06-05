@@ -1,0 +1,6 @@
+[package]
+name = "rusty-hub"
+version = "0.1.0"
+authors = ["Gonçalo Valério <gon@ovalerio.net>"]
+
+[dependencies]
