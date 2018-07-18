@@ -7,3 +7,4 @@ authors = ["Gonçalo Valério <gon@ovalerio.net>"]
 actix-web = "0.6.11"
 diesel = { version = "1.3.0" }
 toml = "0.4.6"
+clap = "2.32.0"
