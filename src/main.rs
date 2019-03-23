@@ -1,9 +1,9 @@
 extern crate actix_web;
 extern crate clap;
 use clap::{Arg};
-use actix_web::{server, App, HttpRequest};
+use actix_web::{server, App, HttpRequest, Responder};
 
-fn index(_req: HttpRequest) -> &'static str {
+fn index(_req: &HttpRequest) -> impl Responder {
     "Hello world!"
 }
 
