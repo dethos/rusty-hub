@@ -1,11 +1,9 @@
 extern crate actix_web;
 extern crate clap;
 use clap::{Arg};
-use actix_web::{server, App, HttpRequest, Responder};
+use actix_web::{server, App};
 
-fn index(_req: &HttpRequest) -> impl Responder {
-    "Hello world!"
-}
+mod controllers;
 
 fn main() {
     println!("[rustyhub] Launching hub");
@@ -32,7 +30,7 @@ fn main() {
     }
 
     println!("[rustyhub] Starting server");
-    server::new(|| App::new().resource("/", |r| r.f(index)))
+    server::new(|| App::new().resource("/", |r| r.f(controllers::index)))
         .bind(format!("{}:{}", address, port))
         .unwrap()
         .run();
