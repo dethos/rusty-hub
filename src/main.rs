@@ -1,7 +1,7 @@
 extern crate actix_web;
 extern crate clap;
 use clap::{Arg};
-use actix_web::{server, App};
+use actix_web::{server, App, http};
 
 mod controllers;
 
@@ -30,7 +30,9 @@ fn main() {
     }
 
     println!("[rustyhub] Starting server");
-    server::new(|| App::new().resource("/", |r| r.f(controllers::index)))
+    server::new(|| App::new()
+        .route("/", http::Method::GET, controllers::index)
+        .route("/", http::Method::POST, controllers::hub))
         .bind(format!("{}:{}", address, port))
         .unwrap()
         .run();
