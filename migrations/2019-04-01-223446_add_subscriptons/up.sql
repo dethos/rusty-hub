@@ -1,0 +1,9 @@
+-- Your SQL goes here
+CREATE TABLE subscriptions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  callback VARCHAR NOT NULL,
+  topic VARCHAR NOT NULL,
+  sec VARCHAR NOT NULL,
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL
+)
