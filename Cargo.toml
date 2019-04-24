@@ -9,3 +9,6 @@ diesel = { version = "1.4.2" }
 toml = "0.5.0"
 clap = "2.32.0"
 askama = "0.8"
+slog = "2.4.1"
+slog-term = "2.4.0"
+slog-async = "2.3.0"
