@@ -4,3 +4,4 @@
 .vscode
 *.iml
 local.db
+test.db

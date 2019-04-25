@@ -19,14 +19,22 @@ pub fn hub(_req: HttpRequest<AppState>) -> HttpResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use actix_web::actix::{SyncArbiter, System};
     use actix_web::{http, test};
-    use utils::setup_logging;
+    use diesel::prelude::*;
+    use utils::{setup_logging, DbExecutor};
 
     #[test]
     fn test_index() {
+        let _sys = System::new("rusty-hub-test");
+        let addr = SyncArbiter::start(1, || {
+            DbExecutor(SqliteConnection::establish("test.db").unwrap())
+        });
+
         let resp = index(
             test::TestRequest::with_state(AppState {
                 log: setup_logging(),
+                db: addr.clone(),
             })
             .finish(),
         );
@@ -35,8 +43,14 @@ mod tests {
 
     #[test]
     fn test_hub() {
+        let _sys = System::new("rusty-hub-test");
+        let addr = SyncArbiter::start(1, || {
+            DbExecutor(SqliteConnection::establish("test.db").unwrap())
+        });
+
         let resp = hub(test::TestRequest::with_state(AppState {
             log: setup_logging(),
+            db: addr.clone(),
         })
         .finish());
         assert_eq!(resp.status(), http::StatusCode::OK);
