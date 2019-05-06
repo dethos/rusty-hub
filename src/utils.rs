@@ -1,6 +1,7 @@
 use actix_web::actix::{Actor, Addr, SyncContext};
 use diesel::prelude::*;
 use slog::Drain;
+use url::form_urlencoded::Parse;
 
 pub struct DbExecutor(pub SqliteConnection);
 
@@ -18,4 +19,8 @@ pub fn setup_logging() -> slog::Logger {
     let drain = slog_term::CompactFormat::new(decorator).build().fuse();
     let drain = slog_async::Async::new(drain).build().fuse();
     slog::Logger::root(drain, o!())
+}
+
+pub fn validate_parsed_data(data: Parse) -> bool {
+    false
 }

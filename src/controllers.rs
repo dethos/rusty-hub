@@ -1,6 +1,8 @@
-use actix_web::{HttpRequest, HttpResponse};
+use actions::{create_subscription, remove_subscription};
+use actix_web::{http, HttpRequest, HttpResponse};
 use askama::Template;
-use utils::AppState;
+use url::form_urlencoded;
+use utils::{validate_parsed_data, AppState};
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -12,7 +14,18 @@ pub fn index(_req: HttpRequest<AppState>) -> HttpResponse {
         .body(IndexView.render().unwrap())
 }
 
-pub fn hub(_req: HttpRequest<AppState>) -> HttpResponse {
+pub fn hub(_req: HttpRequest<AppState>, params: String) -> HttpResponse {
+    let log = &_req.state().log;
+    info!(log, "Received Request");
+    debug!(log, "Content: {}", params);
+    let parsed_data = form_urlencoded::parse(params.as_bytes());
+
+    if !validate_parsed_data(parsed_data) {
+        return HttpResponse::Ok()
+            .status(http::StatusCode::from_u16(400).unwrap())
+            .finish();
+    }
+
     HttpResponse::Ok().body("Hello World!")
 }
 

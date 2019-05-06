@@ -7,6 +7,7 @@ extern crate diesel;
 extern crate slog;
 extern crate slog_async;
 extern crate slog_term;
+extern crate url;
 use actix_web::actix::{SyncArbiter, System};
 use actix_web::{http, server, App};
 use clap::Arg;
@@ -14,6 +15,7 @@ use controllers::{hub, index};
 use diesel::prelude::*;
 use utils::{setup_logging, AppState, DbExecutor};
 
+mod actions;
 mod controllers;
 mod models;
 mod schema;
