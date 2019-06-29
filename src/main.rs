@@ -1,3 +1,4 @@
+extern crate actix;
 extern crate actix_web;
 extern crate askama;
 extern crate clap;
@@ -8,8 +9,8 @@ extern crate slog;
 extern crate slog_async;
 extern crate slog_term;
 extern crate url;
-use actix_web::actix::{SyncArbiter, System};
-use actix_web::{http, server, App};
+use actix::{SyncArbiter, System};
+use actix_web::{web, App, HttpServer};
 use clap::Arg;
 use controllers::{hub, index};
 use diesel::prelude::*;
@@ -53,14 +54,17 @@ fn main() {
         DbExecutor(SqliteConnection::establish("local.db").unwrap())
     });
 
+    let app_data = web::Data::new(AppState {
+        log: setup_logging(),
+        db: addr.clone(),
+    });
+
     info!(log, "Starting server");
-    server::new(move || {
-        App::with_state(AppState {
-            log: setup_logging(),
-            db: addr.clone(),
-        })
-        .route("/", http::Method::GET, index)
-        .route("/", http::Method::POST, hub)
+    HttpServer::new(move || {
+        App::new()
+            .register_data(app_data.clone())
+            .route("/", web::get().to(index))
+            .route("/", web::post().to(hub))
     })
     .bind(format!("{}:{}", address, port))
     .unwrap()

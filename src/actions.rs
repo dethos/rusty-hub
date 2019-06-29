@@ -1,8 +1,3 @@
-pub fn create_subscription() {
+pub fn create_subscription() {}
 
-}
-
-
-pub fn remove_subscription() {
-
-}
+pub fn remove_subscription() {}

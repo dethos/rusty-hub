@@ -1,5 +1,5 @@
 use actions::{create_subscription, remove_subscription};
-use actix_web::{http, HttpRequest, HttpResponse};
+use actix_web::{http, web, HttpRequest, HttpResponse};
 use askama::Template;
 use url::form_urlencoded;
 use utils::{validate_parsed_data, AppState};
@@ -8,14 +8,14 @@ use utils::{validate_parsed_data, AppState};
 #[template(path = "index.html")]
 struct IndexView;
 
-pub fn index(_req: HttpRequest<AppState>) -> HttpResponse {
+pub fn index(state: web::Data<AppState>, _req: HttpRequest) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/html")
         .body(IndexView.render().unwrap())
 }
 
-pub fn hub(_req: HttpRequest<AppState>, params: String) -> HttpResponse {
-    let log = &_req.state().log;
+pub fn hub(state: web::Data<AppState>, _req: HttpRequest, params: String) -> HttpResponse {
+    let log = &state.log;
     info!(log, "Received Request");
     debug!(log, "Content: {}", params);
     let parsed_data = form_urlencoded::parse(params.as_bytes());
@@ -32,8 +32,8 @@ pub fn hub(_req: HttpRequest<AppState>, params: String) -> HttpResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actix_web::actix::{SyncArbiter, System};
-    use actix_web::{http, test};
+    use actix::{SyncArbiter, System};
+    use actix_web::{http, test, web};
     use diesel::prelude::*;
     use utils::{setup_logging, DbExecutor};
 
@@ -44,13 +44,12 @@ mod tests {
             DbExecutor(SqliteConnection::establish("test.db").unwrap())
         });
 
-        let resp = index(
-            test::TestRequest::with_state(AppState {
-                log: setup_logging(),
-                db: addr.clone(),
-            })
-            .finish(),
-        );
+        let data = web::Data::new(AppState {
+            log: setup_logging(),
+            db: addr.clone(),
+        });
+
+        let resp = index(data, test::TestRequest::get().to_http_request());
         assert_eq!(resp.status(), http::StatusCode::OK);
     }
 
@@ -61,11 +60,16 @@ mod tests {
             DbExecutor(SqliteConnection::establish("test.db").unwrap())
         });
 
-        let resp = hub(test::TestRequest::with_state(AppState {
+        let data = web::Data::new(AppState {
             log: setup_logging(),
             db: addr.clone(),
-        })
-        .finish());
-        assert_eq!(resp.status(), http::StatusCode::OK);
+        });
+
+        let resp = hub(
+            data,
+            test::TestRequest::post().to_http_request(),
+            "key=value".to_string(),
+        );
+        assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
     }
 }

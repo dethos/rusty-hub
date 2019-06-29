@@ -4,7 +4,8 @@ version = "0.1.0"
 authors = ["Gonçalo Valério <gon@ovalerio.net>"]
 
 [dependencies]
-actix-web = "0.7.18"
+actix = "0.8.3"
+actix-web = "1.0.2"
 diesel = { version = "1.4.2", features = ["sqlite"] }
 toml = "0.5.0"
 clap = "2.32.0"

@@ -1,4 +1,4 @@
-use actix_web::actix::{Actor, Addr, SyncContext};
+use actix::{Actor, Addr, SyncContext};
 use diesel::prelude::*;
 use slog::Drain;
 use url::form_urlencoded::Parse;
