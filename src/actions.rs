@@ -1,3 +1,3 @@
-pub fn create_subscription() {}
+use url::form_urlencoded::Parse;
 
-pub fn remove_subscription() {}
+pub fn handle_subscription(data: Parse) {}

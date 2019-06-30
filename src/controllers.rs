@@ -1,14 +1,15 @@
-use actions::{create_subscription, remove_subscription};
+use actions::handle_subscription;
 use actix_web::{http, web, HttpRequest, HttpResponse};
 use askama::Template;
 use url::form_urlencoded;
 use utils::{validate_parsed_data, AppState};
+use std::collections::HashMap;
 
 #[derive(Template)]
 #[template(path = "index.html")]
 struct IndexView;
 
-pub fn index(state: web::Data<AppState>, _req: HttpRequest) -> HttpResponse {
+pub fn index(_state: web::Data<AppState>, _req: HttpRequest) -> HttpResponse {
     HttpResponse::Ok()
         .content_type("text/html")
         .body(IndexView.render().unwrap())
@@ -18,15 +19,23 @@ pub fn hub(state: web::Data<AppState>, _req: HttpRequest, params: String) -> Htt
     let log = &state.log;
     info!(log, "Received Request");
     debug!(log, "Content: {}", params);
-    let parsed_data = form_urlencoded::parse(params.as_bytes());
 
-    if !validate_parsed_data(parsed_data) {
+    let parsed_data = form_urlencoded::parse(params.as_bytes());
+    let mut parameters = HashMap::new();
+    for (key, value) in parsed_data {
+        parameters.insert(key.to_string(), value.to_string());
+    }
+
+    if !validate_parsed_data(parameters) {
         return HttpResponse::Ok()
-            .status(http::StatusCode::from_u16(400).unwrap())
+            .status(http::StatusCode::BAD_REQUEST)
             .finish();
     }
 
-    HttpResponse::Ok().body("Hello World!")
+    handle_subscription(parsed_data);
+    return HttpResponse::Ok()
+        .status(http::StatusCode::ACCEPTED)
+        .finish();
 }
 
 #[cfg(test)]
@@ -54,7 +63,7 @@ mod tests {
     }
 
     #[test]
-    fn test_hub() {
+    fn test_hub_no_parameters() {
         let _sys = System::new("rusty-hub-test");
         let addr = SyncArbiter::start(1, || {
             DbExecutor(SqliteConnection::establish("test.db").unwrap())
@@ -71,5 +80,86 @@ mod tests {
             "key=value".to_string(),
         );
         assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn test_hub_invalid_callback() {
+        let _sys = System::new("rusty-hub-test");
+        let addr = SyncArbiter::start(1, || {
+            DbExecutor(SqliteConnection::establish("test.db").unwrap())
+        });
+
+        let data = web::Data::new(AppState {
+            log: setup_logging(),
+            db: addr.clone(),
+        });
+
+        let resp = hub(
+            data,
+            test::TestRequest::post().to_http_request(),
+            "hub.mode=subscribe&hub.callback=none&hub.topic=http://example.com".to_string(),
+        );
+        assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn test_hub_invalid_topic() {
+        let _sys = System::new("rusty-hub-test");
+        let addr = SyncArbiter::start(1, || {
+            DbExecutor(SqliteConnection::establish("test.db").unwrap())
+        });
+
+        let data = web::Data::new(AppState {
+            log: setup_logging(),
+            db: addr.clone(),
+        });
+
+        let resp = hub(
+            data,
+            test::TestRequest::post().to_http_request(),
+            "hub.mode=subscribe&hub.callback=http://example.com&hub.topic=none".to_string(),
+        );
+        assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn test_hub_invalid_mode() {
+        let _sys = System::new("rusty-hub-test");
+        let addr = SyncArbiter::start(1, || {
+            DbExecutor(SqliteConnection::establish("test.db").unwrap())
+        });
+
+        let data = web::Data::new(AppState {
+            log: setup_logging(),
+            db: addr.clone(),
+        });
+
+        let resp = hub(
+            data,
+            test::TestRequest::post().to_http_request(),
+            "hub.mode=none&hub.callback=http://example.com&hub.topic=http://other.com".to_string(),
+        );
+        assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+    }
+
+    #[test]
+    fn test_hub_subscribe_success() {
+        let _sys = System::new("rusty-hub-test");
+        let addr = SyncArbiter::start(1, || {
+            DbExecutor(SqliteConnection::establish("test.db").unwrap())
+        });
+
+        let data = web::Data::new(AppState {
+            log: setup_logging(),
+            db: addr.clone(),
+        });
+
+        let resp = hub(
+            data,
+            test::TestRequest::post().to_http_request(),
+            "hub.mode=subscribe&hub.callback=http://example.com&hub.topic=http://other.com"
+                .to_string(),
+        );
+        assert_eq!(resp.status(), http::StatusCode::ACCEPTED);
     }
 }
