@@ -11,7 +11,7 @@ jobs:
           command: |
             cargo build
             cargo install diesel_cli
-            diesel migration run
+            diesel migration run --database-url=test.db
       - run:
           name: run test suite
           command: |
