@@ -9,12 +9,13 @@ extern crate slog;
 extern crate slog_async;
 extern crate slog_term;
 extern crate url;
-use actix::{SyncArbiter, System};
+use actix::{System};
 use actix_web::{web, App, HttpServer};
 use clap::Arg;
 use controllers::{hub, index};
 use diesel::prelude::*;
-use utils::{setup_logging, AppState, DbExecutor};
+use diesel::r2d2::{self, ConnectionManager};
+use utils::{setup_logging, AppState};
 
 mod actions;
 mod controllers;
@@ -50,13 +51,14 @@ fn main() {
     }
 
     let sys = System::new("rusty-hub");
-    let addr = SyncArbiter::start(3, || {
-        DbExecutor(SqliteConnection::establish("local.db").unwrap())
-    });
+    let manager = ConnectionManager::<SqliteConnection>::new("local.db");
+    let pool = r2d2::Pool::builder()
+        .build(manager)
+        .expect("Failed to create pool.");
 
     let app_data = web::Data::new(AppState {
         log: setup_logging(),
-        db: addr.clone(),
+        db: pool.clone(),
     });
 
     info!(log, "Starting server");

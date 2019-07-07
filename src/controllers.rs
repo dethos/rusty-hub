@@ -1,9 +1,9 @@
 use actions::handle_subscription;
 use actix_web::{http, web, HttpRequest, HttpResponse};
 use askama::Template;
+use std::collections::HashMap;
 use url::form_urlencoded;
 use utils::{validate_parsed_data, AppState};
-use std::collections::HashMap;
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -17,6 +17,7 @@ pub fn index(_state: web::Data<AppState>, _req: HttpRequest) -> HttpResponse {
 
 pub fn hub(state: web::Data<AppState>, _req: HttpRequest, params: String) -> HttpResponse {
     let log = &state.log;
+    let db = &state.db;
     info!(log, "Received Request");
     debug!(log, "Content: {}", params);
 
@@ -26,13 +27,14 @@ pub fn hub(state: web::Data<AppState>, _req: HttpRequest, params: String) -> Htt
         parameters.insert(key.to_string(), value.to_string());
     }
 
-    if !validate_parsed_data(parameters) {
+    if !validate_parsed_data(&parameters) {
         return HttpResponse::Ok()
             .status(http::StatusCode::BAD_REQUEST)
             .finish();
     }
 
-    handle_subscription(parsed_data);
+    let result = handle_subscription(db, &parameters);
+    debug!(log, "{}", result);
     return HttpResponse::Ok()
         .status(http::StatusCode::ACCEPTED)
         .finish();
@@ -41,21 +43,23 @@ pub fn hub(state: web::Data<AppState>, _req: HttpRequest, params: String) -> Htt
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actix::{SyncArbiter, System};
+    use actix::System;
     use actix_web::{http, test, web};
     use diesel::prelude::*;
-    use utils::{setup_logging, DbExecutor};
+    use diesel::r2d2::{self, ConnectionManager};
+    use utils::setup_logging;
 
     #[test]
     fn test_index() {
         let _sys = System::new("rusty-hub-test");
-        let addr = SyncArbiter::start(1, || {
-            DbExecutor(SqliteConnection::establish("test.db").unwrap())
-        });
+        let manager = ConnectionManager::<SqliteConnection>::new("test.db");
+        let pool = r2d2::Pool::builder()
+            .build(manager)
+            .expect("Failed to create pool.");
 
         let data = web::Data::new(AppState {
             log: setup_logging(),
-            db: addr.clone(),
+            db: pool.clone(),
         });
 
         let resp = index(data, test::TestRequest::get().to_http_request());
@@ -65,13 +69,14 @@ mod tests {
     #[test]
     fn test_hub_no_parameters() {
         let _sys = System::new("rusty-hub-test");
-        let addr = SyncArbiter::start(1, || {
-            DbExecutor(SqliteConnection::establish("test.db").unwrap())
-        });
+        let manager = ConnectionManager::<SqliteConnection>::new("test.db");
+        let pool = r2d2::Pool::builder()
+            .build(manager)
+            .expect("Failed to create pool.");
 
         let data = web::Data::new(AppState {
             log: setup_logging(),
-            db: addr.clone(),
+            db: pool.clone(),
         });
 
         let resp = hub(
@@ -85,13 +90,14 @@ mod tests {
     #[test]
     fn test_hub_invalid_callback() {
         let _sys = System::new("rusty-hub-test");
-        let addr = SyncArbiter::start(1, || {
-            DbExecutor(SqliteConnection::establish("test.db").unwrap())
-        });
+        let manager = ConnectionManager::<SqliteConnection>::new("test.db");
+        let pool = r2d2::Pool::builder()
+            .build(manager)
+            .expect("Failed to create pool.");
 
         let data = web::Data::new(AppState {
             log: setup_logging(),
-            db: addr.clone(),
+            db: pool.clone(),
         });
 
         let resp = hub(
@@ -105,13 +111,14 @@ mod tests {
     #[test]
     fn test_hub_invalid_topic() {
         let _sys = System::new("rusty-hub-test");
-        let addr = SyncArbiter::start(1, || {
-            DbExecutor(SqliteConnection::establish("test.db").unwrap())
-        });
+        let manager = ConnectionManager::<SqliteConnection>::new("test.db");
+        let pool = r2d2::Pool::builder()
+            .build(manager)
+            .expect("Failed to create pool.");
 
         let data = web::Data::new(AppState {
             log: setup_logging(),
-            db: addr.clone(),
+            db: pool.clone(),
         });
 
         let resp = hub(
@@ -125,13 +132,14 @@ mod tests {
     #[test]
     fn test_hub_invalid_mode() {
         let _sys = System::new("rusty-hub-test");
-        let addr = SyncArbiter::start(1, || {
-            DbExecutor(SqliteConnection::establish("test.db").unwrap())
-        });
+        let manager = ConnectionManager::<SqliteConnection>::new("test.db");
+        let pool = r2d2::Pool::builder()
+            .build(manager)
+            .expect("Failed to create pool.");
 
         let data = web::Data::new(AppState {
             log: setup_logging(),
-            db: addr.clone(),
+            db: pool.clone(),
         });
 
         let resp = hub(
@@ -145,13 +153,14 @@ mod tests {
     #[test]
     fn test_hub_subscribe_success() {
         let _sys = System::new("rusty-hub-test");
-        let addr = SyncArbiter::start(1, || {
-            DbExecutor(SqliteConnection::establish("test.db").unwrap())
-        });
+        let manager = ConnectionManager::<SqliteConnection>::new("test.db");
+        let pool = r2d2::Pool::builder()
+            .build(manager)
+            .expect("Failed to create pool.");
 
         let data = web::Data::new(AppState {
             log: setup_logging(),
-            db: addr.clone(),
+            db: pool.clone(),
         });
 
         let resp = hub(

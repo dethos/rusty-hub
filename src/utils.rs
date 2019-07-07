@@ -1,19 +1,15 @@
-use actix::{Actor, Addr, SyncContext};
 use diesel::prelude::*;
+use diesel::r2d2::{self, ConnectionManager};
 use slog::Drain;
 
 use std::collections::HashMap;
 use url::Url;
 
-pub struct DbExecutor(pub SqliteConnection);
-
-impl Actor for DbExecutor {
-    type Context = SyncContext<Self>;
-}
+pub type Pool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
 
 pub struct AppState {
     pub log: slog::Logger,
-    pub db: Addr<DbExecutor>,
+    pub db: Pool,
 }
 
 pub fn setup_logging() -> slog::Logger {
@@ -23,7 +19,7 @@ pub fn setup_logging() -> slog::Logger {
     slog::Logger::root(drain, o!())
 }
 
-pub fn validate_parsed_data(parameters: HashMap<String,String>) -> bool {
+pub fn validate_parsed_data(parameters: &HashMap<String,String>) -> bool {
     let callback;
     let mode;
     let topic;

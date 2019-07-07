@@ -6,17 +6,12 @@ jobs:
     working_directory: ~/repo
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - v1-dependencies-{{ checksum "Cargo.lock" }}
       - run:
           name: install dependencies
           command: |
             cargo build
-      - save_cache:
-          paths:
-            - ~/.cargo
-          key: v1-dependencies-{{ checksum "Cargo.lock" }}
+            cargo install diesel_cli
+            diesel migration run
       - run:
           name: run test suite
           command: |

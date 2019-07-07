@@ -6,7 +6,8 @@ authors = ["Gonçalo Valério <gon@ovalerio.net>"]
 [dependencies]
 actix = "0.8.3"
 actix-web = "1.0.2"
-diesel = { version = "1.4.2", features = ["sqlite"] }
+r2d2 = "0.8.5"
+diesel = { version = "1.4.2", features = ["sqlite", "r2d2"] }
 toml = "0.5.0"
 clap = "2.32.0"
 askama = "0.8"
