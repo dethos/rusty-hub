@@ -1,6 +1,7 @@
 use super::schema::subscriptions;
+use super::schema::subscriptions::dsl::*;
 use diesel::prelude::*;
-use models::NewSubscription;
+use models::*;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -9,8 +10,8 @@ use utils::{setup_logging, Pool};
 pub fn handle_subscription(db: &Pool, data: &HashMap<String, String>) -> bool {
     let log = setup_logging();
     let mode;
-    let callback;
-    let topic;
+    let req_callback;
+    let req_topic;
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Invalid Time")
@@ -24,24 +25,24 @@ pub fn handle_subscription(db: &Pool, data: &HashMap<String, String>) -> bool {
     }
 
     match data.get("hub.callback") {
-        Some(value) => callback = value,
+        Some(value) => req_callback = value,
         None => return false,
     }
 
     match data.get("hub.topic") {
-        Some(value) => topic = value,
+        Some(value) => req_topic = value,
         None => return false,
     }
 
     debug!(
         log,
-        "Mode: {}, Callback: {}, topic: {}", mode, callback, topic
+        "Mode: {}, Callback: {}, topic: {}", mode, req_callback, req_topic
     );
 
     if mode == &"subscribe" {
         let subscription = NewSubscription {
-            callback: callback,
-            topic: topic,
+            callback: req_callback,
+            topic: req_topic,
             sec: "",
             created_at: &now,
             expires_at: &now,
@@ -51,9 +52,25 @@ pub fn handle_subscription(db: &Pool, data: &HashMap<String, String>) -> bool {
             .values(&subscription)
             .execute(&conn)
             .expect("Error saving new subscription");
-        debug!(log, "Subscription created.");
+
+        debug!(
+            log,
+            "Subscription created. Callback {}. Topic {}",
+            subscription.callback,
+            subscription.topic
+        );
         return true;
     } else if mode == &"unsubscribe" {
+        let sub = subscriptions
+            .filter(callback.eq(req_callback))
+            .filter(topic.eq(req_topic));
+        diesel::delete(sub)
+            .execute(&conn)
+            .expect("Error removing subscription");
+        debug!(
+            log,
+            "Subscription removed. Callback {}. Topic {}", req_callback, req_topic
+        );
         return true;
     } else {
         debug!(log, "Wrong method.");

@@ -18,8 +18,7 @@ pub fn index(_state: web::Data<AppState>, _req: HttpRequest) -> HttpResponse {
 pub fn hub(state: web::Data<AppState>, _req: HttpRequest, params: String) -> HttpResponse {
     let log = &state.log;
     let db = &state.db;
-    info!(log, "Received Request");
-    debug!(log, "Content: {}", params);
+    info!(log, "Received Request. Content: {}", params);
 
     let parsed_data = form_urlencoded::parse(params.as_bytes());
     let mut parameters = HashMap::new();
@@ -33,8 +32,7 @@ pub fn hub(state: web::Data<AppState>, _req: HttpRequest, params: String) -> Htt
             .finish();
     }
 
-    let result = handle_subscription(db, &parameters);
-    debug!(log, "{}", result);
+    handle_subscription(db, &parameters);
     return HttpResponse::Ok()
         .status(http::StatusCode::ACCEPTED)
         .finish();
