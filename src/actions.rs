@@ -9,30 +9,17 @@ use utils::{setup_logging, Pool};
 
 pub fn handle_subscription(db: &Pool, data: &HashMap<String, String>) -> bool {
     let log = setup_logging();
-    let mode;
-    let req_callback;
-    let req_topic;
+    let mode = data.get("hub.mode").expect("Mode not provided");
+    let req_callback = data.get("hub.callback").expect("Callback not provided");
+    let req_topic = data.get("hub.topic").expect("Topic not provided");
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Invalid Time")
         .as_secs();
-    let now = i32::try_from(timestamp).ok().unwrap();
-    let conn = db.get().unwrap();
-
-    match data.get("hub.mode") {
-        Some(value) => mode = value,
-        None => return false,
-    }
-
-    match data.get("hub.callback") {
-        Some(value) => req_callback = value,
-        None => return false,
-    }
-
-    match data.get("hub.topic") {
-        Some(value) => req_topic = value,
-        None => return false,
-    }
+    let now = i32::try_from(timestamp)
+        .ok()
+        .expect("Unable to calculate time");
+    let conn = db.get().expect("Unable to grab a DB connection");
 
     debug!(
         log,
@@ -79,4 +66,20 @@ pub fn handle_subscription(db: &Pool, data: &HashMap<String, String>) -> bool {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use diesel::r2d2::{self, ConnectionManager};
+    use std::collections::HashMap;
+
+    #[test]
+    #[should_panic]
+    fn test_handle_subscription_bad_data() {
+        let manager = ConnectionManager::<SqliteConnection>::new("test.db");
+        let pool = r2d2::Pool::builder()
+            .build(manager)
+            .expect("Failed to create pool.");
+        let hashmap = HashMap::new();
+
+        handle_subscription(&pool, &hashmap);
+    }
+}
