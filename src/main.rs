@@ -9,7 +9,7 @@ extern crate slog;
 extern crate slog_async;
 extern crate slog_term;
 extern crate url;
-use actix::{System};
+use actix::System;
 use actix_web::{web, App, HttpServer};
 use clap::Arg;
 use controllers::{hub, index};
@@ -24,8 +24,6 @@ mod schema;
 mod utils;
 
 fn main() {
-    let log = setup_logging();
-    info!(log, "Launching hub");
     let matches = clap::App::new("Rusty Hub")
         .version("0.1.0")
         .author("Gonçalo Valério <gon@ovalerio.net>")
@@ -35,23 +33,27 @@ fn main() {
                 .short("c")
                 .long("config")
                 .value_name("FILE")
-                .help("Sets a custom config file")
+                .help("Set a custom config file")
                 .takes_value(true),
         )
         .get_matches();
 
+    let log = setup_logging();
+    info!(log, "Launching hub");
+
     let address = "127.0.0.1";
     let port = "8888";
+    let storage = "local.db";
 
     info!(log, "Loading configuration");
     let config = matches.value_of("config").unwrap_or("");
     if !config.is_empty() {
-        println!("Not implemented");
+        error!(log, "Configuration not implemented yet");
         return;
     }
 
     let sys = System::new("rusty-hub");
-    let manager = ConnectionManager::<SqliteConnection>::new("local.db");
+    let manager = ConnectionManager::<SqliteConnection>::new(storage);
     let pool = r2d2::Pool::builder()
         .build(manager)
         .expect("Failed to create pool.");

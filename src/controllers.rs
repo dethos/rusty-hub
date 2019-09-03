@@ -26,10 +26,14 @@ pub fn hub(state: web::Data<AppState>, _req: HttpRequest, params: String) -> Htt
         parameters.insert(key.to_string(), value.to_string());
     }
 
-    if !validate_parsed_data(&parameters) {
-        return HttpResponse::Ok()
-            .status(http::StatusCode::BAD_REQUEST)
-            .finish();
+    match validate_parsed_data(&parameters) {
+        Ok(_) => debug!(log, "Valid request."),
+        Err(reason) => {
+            return HttpResponse::Ok()
+                .status(http::StatusCode::BAD_REQUEST)
+                .content_type("text/plain")
+                .body(reason)
+        }
     }
 
     handle_subscription(db, &parameters);
