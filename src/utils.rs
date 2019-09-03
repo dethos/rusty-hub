@@ -23,35 +23,46 @@ pub fn validate_parsed_data(parameters: &HashMap<String, String>) -> Result<(), 
     let callback;
     let mode;
     let topic;
-
-    match parameters.get("hub.callback") {
-        Some(value) => callback = value,
-        None => return Err("No hub.callback specified".to_owned()),
-    };
+    let url;
 
     match parameters.get("hub.mode") {
         Some(value) => mode = value,
-        None => return Err("No hub.mode specified".to_owned()),
+        None => return Err("No hub.mode specified".to_string()),
     };
 
-    match parameters.get("hub.topic") {
-        Some(value) => topic = value,
-        None => return Err("No hub.topicspecified".to_owned()),
-    };
+    if mode == &"publish" {
+        match parameters.get("hub.url") {
+            Some(value) => url = value,
+            None => return Err("No hub.url specified".to_string()),
+        };
 
-    if mode != &"subscribe" && mode != &"unsubscribe" {
+        match Url::parse(url) {
+            Ok(value) => debug!(setup_logging(), "Valid URL: {}", value),
+            Err(_) => return Err("hub.url is not a valid URL".to_string()),
+        };
+    } else if mode == &"subscribe" || mode == &"unsubscribe" {
+        match parameters.get("hub.callback") {
+            Some(value) => callback = value,
+            None => return Err("No hub.callback specified".to_string()),
+        };
+
+        match parameters.get("hub.topic") {
+            Some(value) => topic = value,
+            None => return Err("No hub.topicspecified".to_string()),
+        };
+
+        match Url::parse(callback) {
+            Ok(value) => debug!(setup_logging(), "Valid Callback: {}", value),
+            Err(_) => return Err("hub.callback is not a valid URL".to_string()),
+        };
+
+        match Url::parse(topic) {
+            Ok(value) => debug!(setup_logging(), "Valid Topic: {}", value),
+            Err(_) => return Err("hub.topic is not a valid URL".to_string()),
+        };
+    } else {
         return Err(format!("Invalid Method: {}", mode));
     }
-
-    match Url::parse(callback) {
-        Ok(value) => debug!(setup_logging(), "Valid Callback: {}", value),
-        Err(_) => return Err("hub.callback is not a valid URL".to_owned()),
-    };
-
-    match Url::parse(topic) {
-        Ok(value) => debug!(setup_logging(), "Valid Topic: {}", value),
-        Err(_) => return Err("hub.topic is not a valid URL".to_owned()),
-    };
     Ok(())
 }
 

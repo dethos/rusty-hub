@@ -1,4 +1,4 @@
-use actions::handle_subscription;
+use actions::{handle_publication, handle_subscription};
 use actix_web::{http, web, HttpRequest, HttpResponse};
 use askama::Template;
 use std::collections::HashMap;
@@ -36,7 +36,11 @@ pub fn hub(state: web::Data<AppState>, _req: HttpRequest, params: String) -> Htt
         }
     }
 
-    handle_subscription(db, &parameters);
+    if parameters.get("hub.mode").expect("Mode not provided") == &"publish" {
+        handle_publication(db, &parameters);
+    } else {
+        handle_subscription(db, &parameters);
+    }
     return HttpResponse::Ok()
         .status(http::StatusCode::ACCEPTED)
         .finish();

@@ -12,6 +12,7 @@ pub fn handle_subscription(db: &Pool, data: &HashMap<String, String>) -> bool {
     let mode = data.get("hub.mode").expect("Mode not provided");
     let req_callback = data.get("hub.callback").expect("Callback not provided");
     let req_topic = data.get("hub.topic").expect("Topic not provided");
+
     let timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Invalid Time")
@@ -20,11 +21,6 @@ pub fn handle_subscription(db: &Pool, data: &HashMap<String, String>) -> bool {
         .ok()
         .expect("Unable to calculate time");
     let conn = db.get().expect("Unable to grab a DB connection");
-
-    debug!(
-        log,
-        "Mode: {}, Callback: {}, topic: {}", mode, req_callback, req_topic
-    );
 
     if mode == &"subscribe" {
         let subscription = NewSubscription {
@@ -46,7 +42,6 @@ pub fn handle_subscription(db: &Pool, data: &HashMap<String, String>) -> bool {
             subscription.callback,
             subscription.topic
         );
-        return true;
     } else if mode == &"unsubscribe" {
         let sub = subscriptions
             .filter(callback.eq(req_callback))
@@ -58,11 +53,17 @@ pub fn handle_subscription(db: &Pool, data: &HashMap<String, String>) -> bool {
             log,
             "Subscription removed. Callback {}. Topic {}", req_callback, req_topic
         );
-        return true;
     } else {
         debug!(log, "Wrong method.");
         return false;
     }
+
+    return true;
+}
+
+pub fn handle_publication(db: &Pool, data: &HashMap<String, String>) -> bool {
+    // Implement later
+    true
 }
 
 #[cfg(test)]
@@ -80,6 +81,6 @@ mod tests {
             .expect("Failed to create pool.");
         let hashmap = HashMap::new();
 
-        handle_subscription(&pool, &hashmap);
+        assert_eq!(handle_subscription(&pool, &hashmap), false);
     }
 }
