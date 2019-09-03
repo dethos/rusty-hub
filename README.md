@@ -2,9 +2,19 @@
 
 This project started as a learning exercice and as a secondary goal it intends to be an easy to use and deploy [Websub Hub](https://www.w3.org/TR/websub/#hub).
 
-It still is a work in progress and at this moment is not intented to use in production.
+It still is a work in progress and at this moment it is still not ready to be used.
 
 **CI Status**: [![CircleCI](https://circleci.com/gh/dethos/rusty-hub.svg?style=svg)](https://circleci.com/gh/dethos/rust-hub)
+
+## Missing features
+
+Below are some missing features that are required for the hub to work properly:
+
+- [ ] Subscription validation
+- [ ] Subscription expiration
+- [ ] Content distribution
+- [ ] Authenticated content distribution
+- [ ] Change default settings through a `config` file
 
 ## Development Environment
 
