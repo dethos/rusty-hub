@@ -1,20 +1,13 @@
-extern crate actix;
-extern crate actix_web;
-extern crate askama;
-extern crate clap;
 #[macro_use]
 extern crate diesel;
 #[macro_use]
 extern crate slog;
-extern crate slog_async;
-extern crate slog_term;
-extern crate url;
-use actix::System;
 use actix_web::{web, App, HttpServer};
 use clap::Arg;
 use controllers::{hub, index};
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager};
+use std::io::{Error, ErrorKind};
 use utils::{setup_logging, AppState};
 
 mod actions;
@@ -23,7 +16,8 @@ mod models;
 mod schema;
 mod utils;
 
-fn main() {
+#[actix_rt::main]
+async fn main() -> std::io::Result<()> {
     let matches = clap::App::new("Rusty Hub")
         .version("0.1.0")
         .author("Gonçalo Valério <gon@ovalerio.net>")
@@ -49,10 +43,9 @@ fn main() {
     let config = matches.value_of("config").unwrap_or("");
     if !config.is_empty() {
         error!(log, "Configuration not implemented yet");
-        return;
+        return Err(Error::new(ErrorKind::Other, "no_config"));
     }
 
-    let sys = System::new("rusty-hub");
     let manager = ConnectionManager::<SqliteConnection>::new(storage);
     let pool = r2d2::Pool::builder()
         .build(manager)
@@ -66,13 +59,11 @@ fn main() {
     info!(log, "Starting server");
     HttpServer::new(move || {
         App::new()
-            .register_data(app_data.clone())
+            .app_data(app_data.clone())
             .route("/", web::get().to(index))
             .route("/", web::post().to(hub))
     })
-    .bind(format!("{}:{}", address, port))
-    .unwrap()
-    .start();
-    let _ = sys.run();
-    info!(log, "Shutting down server");
+    .bind(format!("{}:{}", address, port))?
+    .run()
+    .await
 }

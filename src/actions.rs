@@ -1,11 +1,11 @@
 use super::schema::subscriptions;
 use super::schema::subscriptions::dsl::*;
+use crate::models::*;
+use crate::utils::{setup_logging, Pool};
 use diesel::prelude::*;
-use models::*;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::time::{SystemTime, UNIX_EPOCH};
-use utils::{setup_logging, Pool};
 
 pub fn handle_subscription(db: &Pool, data: &HashMap<String, String>) -> bool {
     let log = setup_logging();

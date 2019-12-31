@@ -1,9 +1,9 @@
-use actions::{handle_publication, handle_subscription};
+use crate::actions::{handle_publication, handle_subscription};
+use crate::utils::{validate_parsed_data, AppState};
 use actix_web::{http, web, HttpRequest, HttpResponse};
 use askama::Template;
 use std::collections::HashMap;
 use url::form_urlencoded;
-use utils::{validate_parsed_data, AppState};
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -49,11 +49,11 @@ pub fn hub(state: web::Data<AppState>, _req: HttpRequest, params: String) -> Htt
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::setup_logging;
     use actix::System;
     use actix_web::{http, test, web};
     use diesel::prelude::*;
     use diesel::r2d2::{self, ConnectionManager};
-    use utils::setup_logging;
 
     #[test]
     fn test_index() {
